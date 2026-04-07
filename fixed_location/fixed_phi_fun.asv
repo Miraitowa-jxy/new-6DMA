@@ -1,0 +1,24 @@
+function f = fixed_phi_fun(x, v_phaseshift, params)
+p_R = x(1:2).';
+psi = x(3:5).';
+[f_val,~,~,~,~,~,~,~,~,~] = bulid_H(p_R, psi, v_phaseshift, params);
+H = params.H;
+p_B = params.p_B;
+p_U = params.p_U;
+p_T = params.p_T;
+p_R_real = [p_R;H];
+
+Q = rotation_matrix(psi);
+L = Q(:,3);
+% 计算惩罚项
+penalty = 0;
+penalty_lambda = 10; %惩罚系数
+for j = 1:size(p_j, 2) % 遍历所有 j
+    value1 = -L.' * (p_R_real - p_B);
+    penalty = penalty + max(0, value1)^2;
+end
+
+% 计算适应性函数 F
+f = f_val + penalty_lambda * penalty;
+end
+
