@@ -108,13 +108,9 @@ hc_H = sqrt(F_RU)*(alpha_cLOS * a_BU' + alpha_cNLOS * (a_DU' * PHI * a_A) * a_BR
 %感知场景
 ht_H = sqrt(F_RT)*(alpha_tLOS * a_BT' + alpha_tNLOS  *  a_DT' * PHI * a_A * a_BR');
 hr = sqrt(F_RT)*(alpha_rLOS * a_TB + alpha_rNLOS * a_RB * a_B' * PHI * a_AT);
+result = -norm(hr*ht_H*hc_H',2)^2;
 
-rho_denom = norm(hc_H,2) * norm(ht_H,2);
-if rho_denom <= 1e-20
-    rho = 0;
-else
-    rho = abs(hc_H*ht_H') / rho_denom;
-end
+rho = abs(hc_H*ht_H')/norm(hc_H,2)/norm(ht_H,2);
 %% 简化的表示
 Uc = sqrt(F_RU)*alpha_cNLOS * diag(a_DU') * a_A * a_BR';
 a_bar_BU_H = sqrt(F_RU)*alpha_cLOS * a_BU';
@@ -122,12 +118,6 @@ Ut = sqrt(F_RT)*alpha_tNLOS  *  diag(a_DT') * a_A * a_BR';
 a_bar_BT_H = sqrt(F_RT)*alpha_tLOS * a_BT';
 Ur = sqrt(F_RT)*alpha_rNLOS * a_RB * a_B' * diag(a_AT);
 a_bar_TB = sqrt(F_RT)*alpha_rLOS * a_TB;
-if isfield(params, 'skip_objective_eval') && params.skip_objective_eval
-    result = 0;
-else
-    % v2 公式10目标（使用III.B中的Phi/beta写法）
-    [result, ~, ~, ~] = secrecy_objective(v_phaseshift, hc_H, ht_H, Uc, a_bar_BU_H, Ut, a_bar_BT_H, params);
-end
 end
 
 function a_R = array_response_ULA(phi, N, d, lambda)
