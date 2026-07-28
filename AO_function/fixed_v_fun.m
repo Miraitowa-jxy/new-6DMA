@@ -6,7 +6,11 @@ H = params.H;
 p_B = params.p_B;
 p_U = params.p_U;
 p_T = params.p_T;
-constant_factor = params.constant_factor;
+if isfield(params, 'outer_objective_scale')
+    objective_scale = params.outer_objective_scale;
+else
+    objective_scale = 1;
+end
 p_R_real = [p_R;H];
 
 Q = rotation_matrix(psi);
@@ -38,6 +42,5 @@ if isfield(params, 'secrecy_rate_min')
     penalty = penalty + max(0, params.secrecy_rate_min - secrecy_rate)^2;
 end
 % 计算适应性函数 F
-F = f_val + penalty_lambda * penalty;
-F = constant_factor * F; % 乘以常数constant_factor,防止matlab因为精度问题导致错误
+F = objective_scale * f_val + penalty_lambda * penalty;
 end
