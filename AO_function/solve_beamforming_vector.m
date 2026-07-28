@@ -27,29 +27,21 @@ function f = solve_beamforming_vector(hB_H, hE_H, params)
 
 hB = hB_H';
 hE = hE_H';
+Nt = length(hB);
 
 if norm(hB, 2) <= 1e-12
     f = zeros(size(hB));
     return;
 end
 
+A = eye(Nt) + (params.Pt / max(params.sigma_c2, 1e-20)) * (hB * hB');
+B = eye(Nt) + (params.Pt / max(params.sigma_s2, 1e-20)) * (hE * hE');
+A = (A + A') / 2;
+B = (B + B') / 2;
 
-if isfield(params, 'secrecy_leakage_weight')
-    beta = params.secrecy_leakage_weight;
-else
-    beta = 0.25;
-end
-beta = min(max(beta, 0), 1);
+[V, D] = eig(A, B, 'vector');
+[~, idx] = max(real(D));
+f = V(:, idx);
+f = f / max(norm(f, 2), 1e-12);
 
-uB = hB / norm(hB, 2);
-proj_hE = hE - (uB' * hE) * uB;
-
-if norm(proj_hE, 2) <= 1e-12
-    f = uB;
-else
-    uE_orth = proj_hE / norm(proj_hE, 2);
-    phase_align = exp(1j * angle(uE_orth' * hB));
-    f = sqrt(1 - beta) * uB - sqrt(beta) * phase_align * uE_orth;
-    f = f / max(norm(f, 2), 1e-12);
-end
 end
