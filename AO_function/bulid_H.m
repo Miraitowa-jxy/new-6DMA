@@ -125,8 +125,15 @@ a_bar_TB = sqrt(F_RT)*alpha_rLOS * a_TB;
 if isfield(params, 'skip_objective_eval') && params.skip_objective_eval
     result = 0;
 else
-    % v2 公式10目标（使用III.B中的Phi/beta写法）
-    [result, ~, ~, ~] = secrecy_objective(v_phaseshift, hc_H, ht_H, Uc, a_bar_BU_H, Ut, a_bar_BT_H, params);
+    if isfield(params, 'phase_surrogate_mode') && params.phase_surrogate_mode
+        % Phi块：使用V2式(10)的MM相位子问题。
+        % v_phaseshift是物理反射系数phi=diag(Phi)，论文中的优化变量是theta=conj(phi)。
+        theta_phase = conj(v_phaseshift);
+        [result, ~, ~, ~] = secrecy_objective(theta_phase, hc_H, ht_H, Uc, a_bar_BU_H, Ut, a_bar_BT_H, params);
+    else
+        % g/f块与外层收敛：使用V2式(3)重写到6DMA信道后的真实保密率目标。
+        [result, ~, ~, ~, ~] = secrecy_rate_objective(hc_H, ht_H, params);
+    end
 end
 end
 
