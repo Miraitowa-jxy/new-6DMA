@@ -13,32 +13,30 @@
 % euclid_grad = constant_factor * euclid_grad;  % 乘以常数constant_factor,防止matlab因为精度问题导致错误
 % end
 
-function euclid_grad = euclid_grad_fun(p_R, psi, v_phaseshift, params)
-% grad = lambda * theta - beta
+function euclid_grad = euclid_grad_fun(p_R, psi, theta_phase, params)
+%EUCLID_GRAD_FUN Euclidean gradient of the V2 (10) phase surrogate.
+% The manifold variable here is the paper variable theta = conj(diag(Phi)).
+% The channel builder still expects the physical reflection vector phi=diag(Phi),
+% so this function converts theta back to phi=conj(theta) only for channel terms.
 
-[~,~, hc_H, ht_H, ~, Uc, a_bar_BU_H, Ut, a_bar_BT_H, ~, ~] = bulid_H(p_R, psi, v_phaseshift, params);
-f_tmp = solve_beamforming_vector(hc_H, ht_H, params);
-w = sqrt(params.Pt) * f_tmp;
+channel_params = params;
+channel_params.skip_objective_eval = true;
+phi_for_channel = conj(theta_phase);
+[~,~, hc_H, ht_H, ~, Uc, a_bar_BU_H, Ut, a_bar_BT_H, ~, ~] = ...
+    bulid_H(p_R, psi, phi_for_channel, channel_params);
 
-alpha_B = Uc * w;
-alpha_B_tilde = a_bar_BU_H * w;
-alpha_E = Ut * w;
-alpha_E_tilde = a_bar_BT_H * w;
+[lambda_max_Phi, beta, ~] = v2_surrogate_terms(theta_phase, hc_H, ht_H, Uc, a_bar_BU_H, Ut, a_bar_BT_H, params);
 
-if isfield(params, 'mu_v2')
-    mu = params.mu_v2;
-else
-    mu = 1;
+% Teacher-specified phase gradient. It is one half of the exact Euclidean
+% gradient of Eq. (10), i.e., 0.5 * (2*lambda*theta - 2*beta), so it keeps
+% the same stationary point and descent direction while following the formula
+% requested by the advisor.
+euclid_grad = lambda_max_Phi * theta_phase - beta;
+if isfield(params, 'phase_objective_scale')
+    euclid_grad = params.phase_objective_scale * euclid_grad;
+elseif isfield(params, 'constant_factor')
+    euclid_grad = params.constant_factor * euclid_grad;
 end
-
-L = length(v_phaseshift);
-Phi = alpha_E * alpha_E' - mu * alpha_B * alpha_B';
-Phi = (Phi + Phi') / 2;
-lambda_max_Phi = max(real(eig(Phi)));
-beta = (lambda_max_Phi * eye(L) - Phi) * v_phaseshift + ...
-    mu * conj(alpha_B_tilde) * alpha_B - conj(alpha_E_tilde) * alpha_E;
-
-euclid_grad = lambda_max_Phi * v_phaseshift - beta;
 
 if isfield(params, 'grad_clip_norm')
     clip_norm = params.grad_clip_norm;
